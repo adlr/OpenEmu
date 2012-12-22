@@ -34,12 +34,17 @@
 
 - (IBAction)updateBundles:(id)sender;
 
+- (IBAction)scanForWiimotes:(id)sender;
+
+- (void)setWiiScanning:(BOOL)isScanning numPaired:(NSUInteger)numPaired;
+
 - (void)updateInfoPlist;
 
 - (void)loadDatabase;
 
 @property(unsafe_unretained) IBOutlet NSWindow               *aboutWindow;
 @property(unsafe_unretained) IBOutlet OEMainWindowController *mainWindowController;
+@property(unsafe_unretained) IBOutlet NSMenuItem             *wiiPair;
 
 @property(strong, readonly) NSString           *aboutCreditsPath;
 @property(strong, readonly) NSString           *appVersion;

@@ -40,6 +40,7 @@
 
 - (void)startWiimoteSearch;
 - (void)stopWiimoteSearch;
+- (NSUInteger)numWiimotesPaired;
 
 @end
 

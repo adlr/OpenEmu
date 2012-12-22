@@ -27,6 +27,7 @@
 
 #import "OEDeviceManager.h"
 
+#import "OEApplicationDelegate.h"
 #import "OEDeviceHandler.h"
 #import "OEHIDDeviceHandler.h"
 #import "OEWiimoteDeviceHandler.h"
@@ -212,9 +213,7 @@ static void OEHandle_DeviceMatchingCallback(void* inContext, IOReturn inResult, 
 
     NSAssert(aDevice != NULL, @"Passing NULL device.");
     OEWiimoteDeviceHandler *handler = [OEWiimoteDeviceHandler deviceHandlerWithIOBluetoothDevice:aDevice];
-    NSUInteger existingWiimotes = 0;
-    for (id obj in deviceToHandlers)
-        existingWiimotes += [[deviceToHandlers objectForKey:obj] isKindOfClass:[OEWiimoteDeviceHandler class]];
+    NSUInteger existingWiimotes = [self numWiimotesPaired];
 
     deviceToHandlers[@((NSUInteger)aDevice)] = handler;
 
@@ -288,6 +287,10 @@ static void OEHandle_DeviceMatchingCallback(void* inContext, IOReturn inResult, 
 - (void)OE_wiimoteDeviceDidDisconnect:(NSNotification *)notification
 {
     [self OE_removeDeviceHandler:[notification object]];
+    @synchronized (self) {  // to protect access to 'inquiry'
+        [(OEApplicationDelegate*)[[NSApplication sharedApplication] delegate] setWiiScanning:(inquiry != nil)
+                                                                                   numPaired:[self numWiimotesPaired]];
+    }
 }
 
 #pragma mark - Wiimote methods
@@ -297,6 +300,13 @@ static void OEHandle_DeviceMatchingCallback(void* inContext, IOReturn inResult, 
     @synchronized(self)
     {
 //        NSLog(@"Searching for Wiimotes");
+
+        if (inquiry) {
+            NSLog(@"already scanning\n");
+            return;  // Already scanning
+        }
+        [(OEApplicationDelegate*)[[NSApplication sharedApplication] delegate] setWiiScanning:YES
+                                                                                   numPaired:[self numWiimotesPaired]];
 
         inquiry = [IOBluetoothDeviceInquiry inquiryWithDelegate:self];
         [inquiry setInquiryLength:3];
@@ -322,6 +332,14 @@ static void OEHandle_DeviceMatchingCallback(void* inContext, IOReturn inResult, 
     }
 }
 
+- (NSUInteger)numWiimotesPaired
+{
+    NSUInteger existingWiimotes = 0;
+    for (id obj in deviceToHandlers)
+        existingWiimotes += [[deviceToHandlers objectForKey:obj] isKindOfClass:[OEWiimoteDeviceHandler class]];
+    return existingWiimotes;
+}
+
 #pragma mark - IOBluetoothDeviceInquiry Delegates
 
 - (void)deviceInquiryDeviceFound:(IOBluetoothDeviceInquiry *)sender device:(IOBluetoothDevice *)device
@@ -344,9 +362,13 @@ static void OEHandle_DeviceMatchingCallback(void* inContext, IOReturn inResult, 
          if ([[obj name] rangeOfString:@"Nintendo RVL-CNT-01"].location == 0)
              [self OE_addWiimoteWithDevice:obj];
      }];
+    [inquiry setDelegate:nil];
+    inquiry = nil;
+    [(OEApplicationDelegate*)[[NSApplication sharedApplication] delegate] setWiiScanning:NO
+                                                                               numPaired:[self numWiimotesPaired]];
 
-    if([[sender foundDevices] count] == 0)
-        [inquiry start];
+//    if([[sender foundDevices] count] == 0)
+//        [inquiry start];
     /*
     else if(!aborted)
         [self stopWiimoteSearch];

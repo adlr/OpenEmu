@@ -370,10 +370,19 @@ static void *const _OEApplicationDelegateAllPluginsContext = (void *)&_OEApplica
     // Setup OEBindingsController
     [OEBindingsController class];
     [OEDeviceManager sharedDeviceManager];
+}
 
-	// Start WiiRemote support
+- (IBAction)scanForWiimotes:(id)sender
+{
     if([[NSUserDefaults standardUserDefaults] boolForKey:OEWiimoteSupportEnabled])
         [[OEDeviceManager sharedDeviceManager] startWiimoteSearch];
+}
+
+- (void)setWiiScanning:(BOOL)isScanning numPaired:(NSUInteger)numPaired
+{
+    [_wiiPair setTitle:[[NSString alloc] initWithFormat:
+                        isScanning ? @"Scanning for Wiimotes (%lu Paired)" : @"Scan for Wiimotes (%lu Paired)",
+                        numPaired]];
 }
 
 #pragma mark -
